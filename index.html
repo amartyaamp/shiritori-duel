@@ -188,6 +188,22 @@
         conn.on('close', () => { alert("Opponent disconnected."); abandonShip(); });
     }
 
+    // Secondary validator: check Datamuse when the primary dictionary API misses a word.
+    // Datamuse returns an empty array for unknown words, non-empty for known ones.
+    async function isKnownWord(word) {
+        try {
+            const res = await fetch(
+                `https://api.datamuse.com/words?sp=${word}&max=1`,
+                { signal: AbortSignal.timeout(3000) }
+            );
+            const data = await res.json();
+            // Accept if Datamuse returns an exact lowercase match
+            return data.length > 0 && data[0].word.toLowerCase() === word;
+        } catch {
+            return false;
+        }
+    }
+
     async function handleSend() {
         const input = document.getElementById('word-input');
         const word = input.value.toLowerCase().trim();
@@ -201,14 +217,20 @@
 
         try {
             const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`);
-            if (!res.ok) { fb.textContent = "Not a real word!"; return; }
-            const data = await res.json();
-            if (data[0].word[0] === data[0].word[0].toUpperCase()) { fb.textContent = "Proper Nouns are banned."; return; }
+
+            if (!res.ok) {
+                // Primary API failed — try Datamuse as a fallback validator
+                const knownByDatamuse = await isKnownWord(word);
+                if (!knownByDatamuse) { fb.textContent = "Not a real word!"; return; }
+            } else {
+                const data = await res.json();
+                if (data[0].word[0] === data[0].word[0].toUpperCase()) { fb.textContent = "Proper Nouns are banned."; return; }
+            }
 
             clearInterval(timerId);
             myScore = Math.round((myScore - timeLeft) * 10) / 10;
             updateScoreDisplay();
-            
+
             if (gameMode === 'remote') conn.send({ type: 'move', word, score: myScore });
             logWord(word, 'me');
             finishMove(word);
@@ -225,6 +247,14 @@
         updateScoreDisplay();
         logWord(data.word, 'them');
         finishMove(data.word);
+
+        // If opponent's score just hit zero, they win — show a lose message
+        if (oppScore <= 0) {
+            alert("Your opponent has reached zero. You lose this round — train harder.");
+            abandonShip();
+            return;
+        }
+
         isMyTurn = true;
         startTurn();
     }

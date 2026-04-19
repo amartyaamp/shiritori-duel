@@ -277,12 +277,131 @@
         showScreen('game'); startTurn();
     }
 
-    function runCpuTurn() {
+    // Large word bank for the CPU to draw from
+    const CPU_WORD_BANK = [
+        "apple","anthem","anchor","angel","amber","arctic","arrow","artist","atlas","audio",
+        "blaze","bloom","brave","bridge","brook","brush","burst","butter","button","bronze",
+        "cabin","camel","canoe","cargo","cedar","chain","charm","chess","chief","citrus",
+        "cloud","comet","coral","crane","crisp","cross","crown","curve","cycle","cedar",
+        "dandy","dance","diver","dodge","draft","drain","dream","drift","drink","drive",
+        "eagle","earth","ebony","eight","elder","ember","empty","enemy","enjoy","enter",
+        "fable","faith","fancy","feast","fetch","fibre","field","flare","flame","flint",
+        "fleet","float","flood","floor","flour","flour","flute","forge","frail","frame",
+        "giant","glade","given","glass","globe","gloom","gloss","grace","grain","grand",
+        "grant","graph","grasp","gravel","graze","great","green","greet","grill","grind",
+        "happy","harbor","harsh","heart","heavy","herbs","hinge","hobby","honor","horse",
+        "hotel","hover","humid","hunch","hurry","hyena","hyphen","hydra","image","infer",
+        "inner","irony","ivory","ideal","igloo","imply","infer","inbox","index","input",
+        "jewel","joker","joint","judge","juice","jumbo","karma","kayak","kneel","knot",
+        "label","lance","large","laser","latch","layer","learn","ledge","level","light",
+        "limit","linen","liver","local","lodge","longe","lower","lucky","lunar","lyric",
+        "magic","manor","maple","march","match","metal","minor","model","motor","mount",
+        "mouse","mango","merit","merge","mimic","mirth","moist","molar","money",
+        "naval","nerve","night","noble","noise","north","novel","nurse","nymph","naive",
+        "oaken","oasis","ocean","offer","onset","optic","orbit","order","organ","other",
+        "outer","ounce","ovate","oxide","ozone","panel","paper","patch","pilot","place",
+        "plain","plane","plank","plant","plate","plaza","pluck","plumb","plume","plunge",
+        "point","polar","poppy","porch","power","price","pride","prime","print","prize",
+        "probe","prone","proud","prove","prune","pulse","pupil","quest","quill","quota",
+        "quote","radix","rally","raven","reach","react","realm","rebel","refit","relay",
+        "renew","repel","rerun","rider","ridge","ripen","risen","river","rivet","robin",
+        "rocky","roman","roost","rough","route","royal","ruby","ruler","rumor","rural",
+        "salve","sandy","scale","scamp","scene","scent","scout","screw","seize","sense",
+        "serve","shade","shaft","shale","shame","shape","share","sharp","shell","shift",
+        "shine","shirt","shore","short","shout","sight","silly","since","sixth","skill",
+        "slant","slash","sleep","slide","slope","slosh","sloth","smart","smash","smell",
+        "smile","snail","snake","solar","solid","solve","spark","spend","spill","spire",
+        "spite","split","spoke","spore","sport","spout","spray","squad","squat","stage",
+        "stale","stall","stand","stark","start","state","stays","stern","stiff","still",
+        "stoic","stomp","stone","store","storm","story","stout","stove","strap","straw",
+        "stray","strut","stuck","study","stunt","style","surge","swamp","swept","swing",
+        "swirl","swore","table","talon","tempo","tenor","terse","thorn","three","tiger",
+        "tidal","tight","timer","title","token","total","touch","tower","toxic","track",
+        "trade","trail","train","tramp","traps","tread","treat","trend","tribe","trick",
+        "tried","troop","trout","trove","truce","truly","trunk","tryst","tulip","tuner",
+        "tunic","tutor","twice","twirl","twist","ultra","uncle","under","unity","until",
+        "upper","upset","urban","usage","usher","utter","valor","valve","vapor","vault",
+        "vicar","vigor","viper","viral","visor","vocal","voice","voter","vowed","vague",
+        "wafer","waltz","waste","watch","water","weave","wedge","weigh","wheat","wheel",
+        "where","which","while","whirl","white","whole","wider","wimpy","winch","witch",
+        "woken","woman","world","worry","wrath","wrist","yacht","yearn","yield","young","zesty"
+    ];
+
+    // Fetch candidate words from Datamuse API starting with `letter`.
+    // Returns a filtered array of clean lowercase words, or [] on any failure.
+    async function fetchDatamuseWords(letter) {
+        try {
+            const res = await fetch(
+                `https://api.datamuse.com/words?sp=${letter}*&max=100&md=p`,
+                { signal: AbortSignal.timeout(4000) }
+            );
+            const data = await res.json();
+            return data
+                .filter(d => !d.tags || !d.tags.includes('prop')) // drop proper nouns
+                .map(d => d.word.toLowerCase())
+                .filter(w => w.length >= 3 && /^[a-z]+$/.test(w)); // single words, 3+ letters
+        } catch {
+            return []; // network error or timeout → local bank fallback kicks in
+        }
+    }
+
+    // Shared filter: apply all game rules to a candidate list
+    function filterCandidates(words) {
+        const required = lastChar.toLowerCase();
+        return words.filter(w =>
+            (!required || w[0] === required) &&
+            !usedWords.has(w) &&
+            !stopWords.includes(w)
+        );
+    }
+
+    async function runCpuTurn() {
         isMyTurn = false; setTurnUI();
-        setTimeout(() => {
-            const cpuWord = ["apple", "banana", "camera", "danger", "earth", "forest", "guitar", "helmet", "irony", "jungle"][Math.floor(Math.random()*10)];
-            oppScore -= 8; updateScoreDisplay(); logWord(cpuWord, 'them'); finishMove(cpuWord); isMyTurn = true; startTurn();
-        }, 3000);
+
+        const thinkTime = 1500 + Math.random() * 3500; // 1.5s – 5s
+
+        // Fire the Datamuse fetch and the think-timer in parallel.
+        // The CPU plays only after BOTH complete, so API latency adds zero extra delay.
+        const [apiResult] = await Promise.allSettled([
+            fetchDatamuseWords(lastChar.toLowerCase()),
+            new Promise(r => setTimeout(r, thinkTime))
+        ]);
+
+        // Primary: API words that pass all game rules
+        let candidates = filterCandidates(
+            apiResult.status === 'fulfilled' ? apiResult.value : []
+        );
+
+        // Fallback: local word bank (same filter chain)
+        if (candidates.length === 0) {
+            candidates = filterCandidates(CPU_WORD_BANK);
+        }
+
+        // Truly stuck — CPU concedes
+        if (candidates.length === 0) {
+            alert("The Machine has no valid move. You win by default!");
+            abandonShip();
+            return;
+        }
+
+        const cpuWord = candidates[Math.floor(Math.random() * candidates.length)];
+
+        // Deduct score based on actual think time (same formula as the player)
+        const cpuTimeLeft = Math.max(0, 15 - thinkTime / 1000);
+        oppScore = Math.round((oppScore - cpuTimeLeft) * 10) / 10;
+
+        updateScoreDisplay();
+        logWord(cpuWord, 'them');
+        finishMove(cpuWord);
+
+        if (oppScore <= 0) {
+            alert("The Machine has reached zero score. You lose... this time.");
+            abandonShip();
+            return;
+        }
+
+        isMyTurn = true;
+        startTurn();
     }
 
     document.getElementById('send-btn').onclick = handleSend;

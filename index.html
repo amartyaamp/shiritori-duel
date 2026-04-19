@@ -216,15 +216,21 @@
         if (stopWords.includes(word)) { fb.textContent = "Stop-words are forbidden."; return; }
 
         try {
-            const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`);
+            // Fire both APIs in parallel — no sequential penalty for fallback words
+            const [primaryResult, datamuse] = await Promise.allSettled([
+                fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`).then(r => r.ok ? r.json() : null),
+                isKnownWord(word)
+            ]);
 
-            if (!res.ok) {
-                // Primary API failed — try Datamuse as a fallback validator
-                const knownByDatamuse = await isKnownWord(word);
-                if (!knownByDatamuse) { fb.textContent = "Not a real word!"; return; }
-            } else {
-                const data = await res.json();
-                if (data[0].word[0] === data[0].word[0].toUpperCase()) { fb.textContent = "Proper Nouns are banned."; return; }
+            const primaryData = primaryResult.status === 'fulfilled' ? primaryResult.value : null;
+            const knownByDatamuse = datamuse.status === 'fulfilled' ? datamuse.value : false;
+
+            if (primaryData) {
+                // Primary succeeded — check for proper nouns using its data
+                if (primaryData[0].word[0] === primaryData[0].word[0].toUpperCase()) { fb.textContent = "Proper Nouns are banned."; return; }
+            } else if (!knownByDatamuse) {
+                // Both failed — genuinely not a word
+                fb.textContent = "Not a real word!"; return;
             }
 
             clearInterval(timerId);

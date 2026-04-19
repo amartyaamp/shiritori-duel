@@ -80,9 +80,9 @@
         <div class="info-box">
             <p>This digital arena was forged in the fires of inspiration (and heavy eyelids).</p>
             <div class="anime-note">
-                "One fine afternoon feeling sleepy, <b>Amartya</b> thought of a super anime <i>'No Game No Life'</i> and decided that a world where everything is decided by games was much better than a world where everything is decided by coffee. Thus, this battleground for the net and CPU was born."
+                "One fine afternoon feeling sleepy, <b>Amartya</b> thought of a super anime <i>'No Game No Life'</i> and decided that a world where everything is decided by games was much better than a world where everything is decided by coffee. Thus, this battleground for the intellect and the CPU was born."
             </div>
-            <p style="margin-top:15px; font-size: 0.8rem; text-align: center;">V.1.0 - Built with PeerJS & Pure Logic</p>
+            <p style="margin-top:15px; font-size: 0.8rem; text-align: center;">V.2.0 &mdash; Multiplayer via <b>Ably</b> &middot; Word validation via <b>Datamuse</b> &middot; Hosted on <b>Vercel</b></p>
         </div>
         <button class="menu-btn btn-solo" onclick="showScreen('menu')">RETURN TO MENU</button>
     </div>
@@ -224,8 +224,14 @@
         document.getElementById('name-p1').textContent = amIHost ? 'YOU' : 'THEM';
         document.getElementById('name-p2').textContent = amIHost ? 'THEM' : 'YOU';
 
-        channel.subscribe('move', (msg) => receiveMove(msg.data));
-        channel.subscribe('forfeit', () => {
+        // Ably delivers messages to ALL subscribers including the publisher.
+        // msg.clientId tells us who sent it — skip our own messages to avoid echo.
+        channel.subscribe('move', (msg) => {
+            if (msg.clientId === ablyClient.auth.clientId) return;
+            receiveMove(msg.data);
+        });
+        channel.subscribe('forfeit', (msg) => {
+            if (msg.clientId === ablyClient.auth.clientId) return;
             alert("They surrendered! A victory for the history books.");
             abandonShip();
         });

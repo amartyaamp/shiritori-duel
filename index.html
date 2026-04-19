@@ -91,7 +91,8 @@
     <div id="screen-help" class="screen">
         <h1>How Not to Fail</h1>
         <div class="info-box">
-            <p>1. <b>The Chain:</b> Word starts with the last letter of the previous word.</p>
+            <p>0. <b>First Word is Free:</b> No chain yet — pick <b>any valid word</b> (3+ letters, no proper nouns, no stop-words). You set the opening letter.</p>
+            <p>1. <b>The Chain:</b> From word 2 onward, your word must start with the <b>last letter</b> of the previous word.</p>
             <p>2. <b>Size Matters:</b> <b>3+ letters only</b>. No "ox", "id", or "yo".</p>
             <p>3. <b>Race to Zero:</b> Start at 100. Every second left on your timer is subtracted from your score. Submit at -5s? Your score goes UP. Don't be slow.</p>
             <p>4. <b>Don't Get Personal:</b> No Proper Nouns. No cities, no brands, no names.</p>
@@ -276,6 +277,12 @@
     function startTurn() {
         timeLeft = 15.0;
         setTurnUI();
+
+        // First turn: no chain constraint yet — show a helpful hint
+        if (!lastChar && isMyTurn) {
+            document.getElementById('feedback').textContent = '💡 First word is yours — any word (3+ letters, no proper nouns, no stop-words).';
+        }
+
         timerId = setInterval(() => {
             timeLeft -= 0.1;
             const t = document.getElementById('timer');

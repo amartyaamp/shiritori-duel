@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shiritori Duel: The Snob's Gambit</title>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #3498db;
+            --p1-color: #3498db;
+            --p2-color: #e67e22;
+            --bg: #f4f7f6;
+            --danger: #e74c3c;
+        }
+
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        
+        .screen { background: white; width: 90%; max-width: 450px; padding: 2rem; border-radius: 25px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); text-align: center; display: none; animation: slideUp 0.4s ease-out; }
+        .active { display: block; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        h1 { font-size: 2.2rem; color: var(--primary); margin-top: 0; }
+        .subtitle { color: #666; font-style: italic; margin-bottom: 2rem; }
+
+        /* Buttons */
+        .menu-btn { width: 100%; padding: 1rem; margin: 8px 0; border: none; border-radius: 12px; font-size: 1.1rem; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .btn-solo { background: var(--p1-color); color: white; }
+        .btn-remote { background: var(--p2-color); color: white; }
+        .btn-help { background: #eee; color: #444; }
+        .btn-credits { background: #dcdde1; color: #2f3640; }
+        .menu-btn:hover { transform: scale(1.02); filter: brightness(1.1); }
+
+        /* Help & Credits Box */
+        .info-box { text-align: left; background: #fffdf0; padding: 20px; border-radius: 15px; border: 1px solid #ffeeba; margin-bottom: 20px; font-size: 0.95rem; line-height: 1.5; }
+        .info-box b { color: #d4a017; }
+        .anime-note { font-style: italic; border-left: 4px solid var(--accent); padding-left: 10px; margin-top: 15px; color: #555; }
+
+        /* Game Elements */
+        .scores { display: flex; gap: 10px; margin-bottom: 15px; }
+        .score-card { flex: 1; padding: 10px; background: #f1f3f5; border-radius: 12px; border: 3px solid transparent; }
+        .active-turn { border-color: #2ecc71 !important; background: white !important; transform: scale(1.05); box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+        .score-val { font-size: 2rem; font-weight: 900; }
+        
+        #timer { font-size: 3.5rem; font-weight: 800; margin: 5px 0; font-variant-numeric: tabular-nums; }
+        .timer-danger { color: var(--danger); animation: shake 0.2s infinite; }
+
+        .target-box { background: #e7f3ff; padding: 15px; border-radius: 15px; margin-bottom: 15px; border: 1px solid #d1ecf1; }
+        #target-letter { font-size: 3rem; font-weight: 900; color: var(--accent); }
+
+        .history { height: 130px; overflow-y: auto; display: flex; flex-direction: column; gap: 5px; padding: 10px; background: #fafafa; border-radius: 10px; margin-bottom: 15px; border: 1px solid #eee; }
+        .msg-row { padding: 6px 12px; border-radius: 8px; font-size: 0.9rem; max-width: 80%; font-weight: bold; }
+        .msg-me { align-self: flex-end; background: var(--accent); color: white; }
+        .msg-them { align-self: flex-start; background: #ddd; color: #333; }
+        
+        .input-row { display: flex; gap: 8px; }
+        input { flex: 1; padding: 12px; border: 2px solid #ddd; border-radius: 10px; font-size: 1rem; }
+        #feedback { height: 20px; font-size: 0.85rem; color: var(--danger); font-weight: bold; margin: 10px 0; }
+
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(2px); } 75% { transform: translateX(-2px); } }
+    </style>
+</head>
+<body>
+
+    <!-- MAIN MENU -->
+    <div id="screen-menu" class="screen active">
+        <h1>Shiritori Duel</h1>
+        <p class="subtitle">Vocabulary for the Vain</p>
+        <button class="menu-btn btn-solo" onclick="startSolo()">👤 VS THE MACHINE</button>
+        <button class="menu-btn btn-remote" onclick="initRemote(true)">🌐 HOST REMOTE GAME</button>
+        <button class="menu-btn btn-help" onclick="showScreen('join')">🔗 JOIN A FRIEND</button>
+        <button class="menu-btn btn-help" onclick="showScreen('help')">📖 THE SCROLLS (HELP)</button>
+        <button class="menu-btn btn-credits" onclick="showScreen('credits')">✨ THE ARCHITECT</button>
+    </div>
+
+    <!-- CREDITS SCREEN -->
+    <div id="screen-credits" class="screen">
+        <h1>The Architect</h1>
+        <div class="info-box">
+            <p>This digital arena was forged in the fires of inspiration (and heavy eyelids).</p>
+            <div class="anime-note">
+                "One fine afternoon feeling sleepy, <b>Amartya</b> thought of a super anime <i>'No Game No Life'</i> and decided that a world where everything is decided by games was much better than a world where everything is decided by coffee. Thus, this battleground for the net and CPU was born."
+            </div>
+            <p style="margin-top:15px; font-size: 0.8rem; text-align: center;">V.1.0 - Built with PeerJS & Pure Logic</p>
+        </div>
+        <button class="menu-btn btn-solo" onclick="showScreen('menu')">RETURN TO MENU</button>
+    </div>
+
+    <!-- HELP SCREEN -->
+    <div id="screen-help" class="screen">
+        <h1>How Not to Fail</h1>
+        <div class="info-box">
+            <p>1. <b>The Chain:</b> Word starts with the last letter of the previous word.</p>
+            <p>2. <b>Size Matters:</b> <b>3+ letters only</b>. No "ox", "id", or "yo".</p>
+            <p>3. <b>Race to Zero:</b> Start at 100. Every second left on your timer is subtracted from your score. Submit at -5s? Your score goes UP. Don't be slow.</p>
+            <p>4. <b>Don't Get Personal:</b> No Proper Nouns. No cities, no brands, no names.</p>
+            <p>5. <b>The Snob Clause:</b> No stop-words ('the', 'and', 'but').</p>
+        </div>
+        <button class="menu-btn btn-solo" onclick="showScreen('menu')">UNDERSTOOD</button>
+    </div>
+
+    <!-- JOIN SCREEN -->
+    <div id="screen-join" class="screen">
+        <h1>Join Battle</h1>
+        <input type="text" id="join-id" placeholder="Paste Room ID here...">
+        <button class="menu-btn btn-remote" onclick="initRemote(false)">ENTER ARENA</button>
+        <button class="menu-btn btn-help" onclick="showScreen('menu')">BACK</button>
+    </div>
+
+    <!-- LOBBY SCREEN -->
+    <div id="screen-lobby" class="screen">
+        <h1>Waiting...</h1>
+        <p>Send this ID to a worthy opponent:</p>
+        <div id="my-id-display" style="background:#eee; padding:10px; border-radius:8px; font-family:monospace; cursor:pointer;" onclick="copyId()">Generating...</div>
+        <p><small>(Click ID to copy)</small></p>
+        <button class="menu-btn btn-help" onclick="abandonShip()">ABANDON SHIP</button>
+    </div>
+
+    <!-- GAME SCREEN -->
+    <div id="screen-game" class="screen">
+        <div class="scores">
+            <div id="card-p1" class="score-card">
+                <div id="name-p1" class="score-label">YOU</div>
+                <div id="score-p1" class="score-val">100</div>
+            </div>
+            <div id="card-p2" class="score-card">
+                <div id="name-p2" class="score-label">THEM</div>
+                <div id="score-p2" class="score-val">100</div>
+            </div>
+        </div>
+        <div id="timer">15.0</div>
+        <div class="target-box"><div id="target-letter">?</div></div>
+        <div id="history" class="history"></div>
+        <div id="feedback"></div>
+        <div class="input-area">
+            <div class="input-row">
+                <input type="text" id="word-input" placeholder="Type here..." disabled>
+                <button class="menu-btn btn-solo" id="send-btn" style="width:auto; margin:0">SEND</button>
+            </div>
+            <button onclick="handleForfeit()" style="margin-top:15px; border:none; background:none; color:var(--danger); cursor:pointer; font-weight:bold;">SURRENDER (FORFEIT)</button>
+        </div>
+    </div>
+
+<script>
+    let peer, conn, timerId;
+    let myScore = 100, oppScore = 100, timeLeft = 15.0;
+    let usedWords = new Set(), lastChar = "", amIHost = false, isMyTurn = false, gameMode = 'remote';
+
+    const stopWords = ["the","and","but","for","not","with","from","that","this","they","are","was","were","been","his","her","she","him","had","has"];
+
+    function showScreen(id) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById('screen-' + id).classList.add('active');
+    }
+
+    function abandonShip() {
+        if (peer) peer.destroy();
+        window.location.reload();
+    }
+
+    function initRemote(isHost) {
+        amIHost = isHost;
+        peer = new Peer();
+        peer.on('open', id => {
+            if (isHost) { document.getElementById('my-id-display').textContent = id; showScreen('lobby'); }
+            else { 
+                const idInput = document.getElementById('join-id').value.trim();
+                if(!idInput) { alert("Need an ID, friend."); return; }
+                conn = peer.connect(idInput); setupConn(); 
+            }
+        });
+        peer.on('connection', c => { conn = c; setupConn(); });
+        peer.on('error', err => { alert("Connection failed: " + err.type); abandonShip(); });
+    }
+
+    function setupConn() {
+        conn.on('open', () => {
+            showScreen('game');
+            document.getElementById('name-p1').textContent = amIHost ? "YOU" : "THEM";
+            document.getElementById('name-p2').textContent = amIHost ? "THEM" : "YOU";
+            if (amIHost) { isMyTurn = true; startTurn(); } else { setTurnUI(); }
+        });
+        conn.on('data', data => {
+            if (data.type === 'move') receiveMove(data);
+            if (data.type === 'forfeit') { alert("They surrendered! A victory for the history books."); abandonShip(); }
+        });
+        conn.on('close', () => { alert("Opponent disconnected."); abandonShip(); });
+    }
+
+    async function handleSend() {
+        const input = document.getElementById('word-input');
+        const word = input.value.toLowerCase().trim();
+        const fb = document.getElementById('feedback');
+
+        fb.textContent = "Consulting the high council...";
+        if (word.length < 3) { fb.textContent = "3+ letters! Don't be lazy."; return; }
+        if (lastChar && word[0] !== lastChar) { fb.textContent = `Must start with ${lastChar.toUpperCase()}!`; return; }
+        if (usedWords.has(word)) { fb.textContent = "Old news. Pick another."; return; }
+        if (stopWords.includes(word)) { fb.textContent = "Stop-words are forbidden."; return; }
+
+        try {
+            const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`);
+            if (!res.ok) { fb.textContent = "Not a real word!"; return; }
+            const data = await res.json();
+            if (data[0].word[0] === data[0].word[0].toUpperCase()) { fb.textContent = "Proper Nouns are banned."; return; }
+
+            clearInterval(timerId);
+            myScore = Math.round((myScore - timeLeft) * 10) / 10;
+            updateScoreDisplay();
+            
+            if (gameMode === 'remote') conn.send({ type: 'move', word, score: myScore });
+            logWord(word, 'me');
+            finishMove(word);
+
+            if (myScore <= 0) { alert("VICTORY ACHIEVED!"); abandonShip(); }
+            else if (gameMode === 'solo') runCpuTurn();
+            else { isMyTurn = false; setTurnUI(); }
+        } catch (e) { fb.textContent = "Dictionary API is acting up."; }
+    }
+
+    function receiveMove(data) {
+        clearInterval(timerId);
+        oppScore = data.score;
+        updateScoreDisplay();
+        logWord(data.word, 'them');
+        finishMove(data.word);
+        isMyTurn = true;
+        startTurn();
+    }
+
+    function finishMove(word) {
+        usedWords.add(word);
+        lastChar = word.slice(-1);
+        document.getElementById('target-letter').textContent = lastChar.toUpperCase();
+        document.getElementById('word-input').value = "";
+        document.getElementById('feedback').textContent = "";
+    }
+
+    function startTurn() {
+        timeLeft = 15.0;
+        setTurnUI();
+        timerId = setInterval(() => {
+            timeLeft -= 0.1;
+            const t = document.getElementById('timer');
+            t.textContent = timeLeft.toFixed(1);
+            t.className = timeLeft < 0 ? 'timer-danger' : '';
+        }, 100);
+    }
+
+    function setTurnUI() {
+        const input = document.getElementById('word-input');
+        input.disabled = !isMyTurn;
+        if (isMyTurn) input.focus();
+        document.getElementById('card-p1').className = `score-card ${((amIHost && isMyTurn) || (!amIHost && !isMyTurn)) ? 'active-turn' : ''}`;
+        document.getElementById('card-p2').className = `score-card ${((!amIHost && isMyTurn) || (amIHost && !isMyTurn)) ? 'active-turn' : ''}`;
+    }
+
+    function updateScoreDisplay() {
+        document.getElementById(amIHost ? 'score-p1' : 'score-p2').textContent = myScore;
+        document.getElementById(amIHost ? 'score-p2' : 'score-p1').textContent = oppScore;
+    }
+
+    function logWord(word, who) {
+        const div = document.createElement('div');
+        div.className = `msg-row msg-${who}`;
+        div.textContent = word.toUpperCase();
+        document.getElementById('history').appendChild(div);
+        document.getElementById('history').scrollTop = 9999;
+    }
+
+    function handleForfeit() { if(conn) conn.send({type:'forfeit'}); abandonShip(); }
+    function copyId() { navigator.clipboard.writeText(document.getElementById('my-id-display').textContent); alert("ID copied!"); }
+
+    function startSolo() {
+        gameMode = 'solo'; amIHost = true; isMyTurn = true;
+        showScreen('game'); startTurn();
+    }
+
+    function runCpuTurn() {
+        isMyTurn = false; setTurnUI();
+        setTimeout(() => {
+            const cpuWord = ["apple", "banana", "camera", "danger", "earth", "forest", "guitar", "helmet", "irony", "jungle"][Math.floor(Math.random()*10)];
+            oppScore -= 8; updateScoreDisplay(); logWord(cpuWord, 'them'); finishMove(cpuWord); isMyTurn = true; startTurn();
+        }, 3000);
+    }
+
+    document.getElementById('send-btn').onclick = handleSend;
+    document.getElementById('word-input').onkeypress = e => { if(e.key === 'Enter' && isMyTurn) handleSend(); };
+</script>
+</body>
+</html>

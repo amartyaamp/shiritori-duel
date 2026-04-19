@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shiritori Duel: The Snob's Gambit</title>
-    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <script src="https://cdn.ably.com/lib/ably.min-2.js"></script>
     <style>
         :root {
             --primary: #2c3e50;
@@ -104,7 +104,7 @@
     <!-- JOIN SCREEN -->
     <div id="screen-join" class="screen">
         <h1>Join Battle</h1>
-        <input type="text" id="join-id" placeholder="Paste Room ID here...">
+        <input type="text" id="join-id" placeholder="Enter Room Code (e.g. XK9W2A)..." style="text-transform:uppercase;">
         <button class="menu-btn btn-remote" onclick="initRemote(false)">ENTER ARENA</button>
         <button class="menu-btn btn-help" onclick="showScreen('menu')">BACK</button>
     </div>
@@ -112,8 +112,8 @@
     <!-- LOBBY SCREEN -->
     <div id="screen-lobby" class="screen">
         <h1>Waiting...</h1>
-        <p>Send this ID to a worthy opponent:</p>
-        <div id="my-id-display" style="background:#eee; padding:10px; border-radius:8px; font-family:monospace; cursor:pointer;" onclick="copyId()">Generating...</div>
+        <p>Share this Room Code with your opponent:</p>
+        <div id="my-id-display" style="background:#eee; padding:10px; border-radius:8px; font-family:monospace; font-size:1.4rem; letter-spacing:4px; cursor:pointer;" onclick="copyId()">Generating...</div>
         <p><small>(Click ID to copy)</small></p>
         <button class="menu-btn btn-help" onclick="abandonShip()">ABANDON SHIP</button>
     </div>
@@ -144,9 +144,11 @@
     </div>
 
 <script>
-    let peer, conn, timerId;
+    let ablyClient, channel, timerId;
     let myScore = 100, oppScore = 100, timeLeft = 15.0;
     let usedWords = new Set(), lastChar = "", amIHost = false, isMyTurn = false, gameMode = 'remote';
+    let gameOver = false; // guard against double-fire on disconnect
+    const ABLY_KEY = '0rH5ag.KR9ICA:0zqyTFNsnNxVRiej7nAkWgnS5Sv0-xQ0kD50Qq8BCRk';
 
     const stopWords = ["the","and","but","for","not","with","from","that","this","they","are","was","were","been","his","her","she","him","had","has"];
 
@@ -156,60 +158,79 @@
     }
 
     function abandonShip() {
-        if (peer) peer.destroy();
+        if (gameOver) return;
+        gameOver = true;
+        if (ablyClient) ablyClient.close();
         window.location.reload();
     }
 
-    // ICE server config: STUN (discover public IP) + TURN (relay when direct P2P fails).
-    // Open Relay Project provides a free public TURN — no API key required.
-    const ICE_SERVERS = {
-        iceServers: [
-            { urls: 'stun:stun.l.google.com:19302' },
-            {
-                urls: 'turn:openrelay.metered.ca:80',
-                username: 'openrelayproject',
-                credential: 'openrelayproject'
-            },
-            {
-                urls: 'turn:openrelay.metered.ca:443',
-                username: 'openrelayproject',
-                credential: 'openrelayproject'
-            },
-            {
-                urls: 'turn:openrelay.metered.ca:443?transport=tcp',
-                username: 'openrelayproject',
-                credential: 'openrelayproject'
-            }
-        ]
-    };
-
-    function initRemote(isHost) {
-        amIHost = isHost;
-        peer = new Peer({ config: ICE_SERVERS });
-        peer.on('open', id => {
-            if (isHost) { document.getElementById('my-id-display').textContent = id; showScreen('lobby'); }
-            else { 
-                const idInput = document.getElementById('join-id').value.trim();
-                if(!idInput) { alert("Need an ID, friend."); return; }
-                conn = peer.connect(idInput, { config: ICE_SERVERS }); setupConn(); 
-            }
-        });
-        peer.on('connection', c => { conn = c; setupConn(); });
-        peer.on('error', err => { alert("Connection failed: " + err.type); abandonShip(); });
+    function generateRoomCode() {
+        return Math.random().toString(36).substring(2, 8).toUpperCase();
     }
 
-    function setupConn() {
-        conn.on('open', () => {
-            showScreen('game');
-            document.getElementById('name-p1').textContent = amIHost ? "YOU" : "THEM";
-            document.getElementById('name-p2').textContent = amIHost ? "THEM" : "YOU";
-            if (amIHost) { isMyTurn = true; startTurn(); } else { setTurnUI(); }
+    async function initRemote(isHost) {
+        amIHost = isHost;
+        gameOver = false;
+
+        // Each player gets a unique clientId so we can tell them apart in presence
+        const playerId = Math.random().toString(36).substring(2);
+        ablyClient = new Ably.Realtime({ key: ABLY_KEY, clientId: playerId });
+
+        let roomCode;
+        if (isHost) {
+            roomCode = generateRoomCode();
+            document.getElementById('my-id-display').textContent = roomCode;
+            showScreen('lobby');
+        } else {
+            roomCode = document.getElementById('join-id').value.trim().toUpperCase();
+            if (!roomCode) { alert("Need a Room Code, friend."); return; }
+        }
+
+        channel = ablyClient.channels.get(`shiritori-${roomCode}`);
+
+        // Enter presence so each side knows when the other disconnects
+        await channel.presence.enter();
+        channel.presence.subscribe('leave', (member) => {
+            if (member.clientId !== playerId && !gameOver) {
+                alert("Opponent disconnected.");
+                abandonShip();
+            }
         });
-        conn.on('data', data => {
-            if (data.type === 'move') receiveMove(data);
-            if (data.type === 'forfeit') { alert("They surrendered! A victory for the history books."); abandonShip(); }
+
+        ablyClient.connection.on('failed', () => {
+            if (!gameOver) { alert("Connection to Ably failed."); abandonShip(); }
         });
-        conn.on('close', () => { alert("Opponent disconnected."); abandonShip(); });
+
+        if (isHost) {
+            // Wait for the joiner to signal they're in
+            channel.subscribe('player-joined', () => {
+                channel.unsubscribe('player-joined');
+                channel.publish('game-start', {});
+                setupAblyGame();
+            });
+        } else {
+            // Wait for the host's start signal
+            channel.subscribe('game-start', () => {
+                channel.unsubscribe('game-start');
+                setupAblyGame();
+            });
+            // Tell the host we've arrived
+            channel.publish('player-joined', {});
+        }
+    }
+
+    function setupAblyGame() {
+        showScreen('game');
+        document.getElementById('name-p1').textContent = amIHost ? 'YOU' : 'THEM';
+        document.getElementById('name-p2').textContent = amIHost ? 'THEM' : 'YOU';
+
+        channel.subscribe('move', (msg) => receiveMove(msg.data));
+        channel.subscribe('forfeit', () => {
+            alert("They surrendered! A victory for the history books.");
+            abandonShip();
+        });
+
+        if (amIHost) { isMyTurn = true; startTurn(); } else { setTurnUI(); }
     }
 
     // Secondary validator: check Datamuse when the primary dictionary API misses a word.
@@ -261,7 +282,7 @@
             myScore = Math.round((myScore - timeLeft) * 10) / 10;
             updateScoreDisplay();
 
-            if (gameMode === 'remote') conn.send({ type: 'move', word, score: myScore });
+            if (gameMode === 'remote') channel.publish('move', { word, score: myScore });
             logWord(word, 'me');
             finishMove(word);
 
@@ -335,8 +356,8 @@
         document.getElementById('history').scrollTop = 9999;
     }
 
-    function handleForfeit() { if(conn) conn.send({type:'forfeit'}); abandonShip(); }
-    function copyId() { navigator.clipboard.writeText(document.getElementById('my-id-display').textContent); alert("ID copied!"); }
+    function handleForfeit() { if (channel) channel.publish('forfeit', {}); abandonShip(); }
+    function copyId() { navigator.clipboard.writeText(document.getElementById('my-id-display').textContent); alert("Room Code copied!"); }
 
     function startSolo() {
         gameMode = 'solo'; amIHost = true; isMyTurn = true;

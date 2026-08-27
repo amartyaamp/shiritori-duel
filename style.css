@@ -1,0 +1,80 @@
+:root {
+    --primary: #2c3e50;
+    --accent: #3498db;
+    --p1-color: #3498db;
+    --p2-color: #e67e22;
+    --bg: #f4f7f6;
+    --danger: #e74c3c;
+}
+
+body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+
+.screen { background: white; width: 90%; max-width: 450px; padding: 2rem; border-radius: 25px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); text-align: center; display: none; animation: slideUp 0.4s ease-out; }
+.active { display: block; }
+@keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+h1 { font-size: 2.2rem; color: var(--primary); margin-top: 0; }
+.subtitle { color: #666; font-style: italic; margin-bottom: 2rem; }
+
+/* Buttons */
+.menu-btn { width: 100%; padding: 1rem; margin: 8px 0; border: none; border-radius: 12px; font-size: 1.1rem; font-weight: bold; cursor: pointer; transition: 0.2s; }
+.btn-solo { background: var(--p1-color); color: white; }
+.btn-remote { background: var(--p2-color); color: white; }
+.btn-help { background: #eee; color: #444; }
+.btn-credits { background: #dcdde1; color: #2f3640; }
+.menu-btn:hover { transform: scale(1.02); filter: brightness(1.1); }
+
+/* Help & Credits Box */
+.info-box { text-align: left; background: #fffdf0; padding: 20px; border-radius: 15px; border: 1px solid #ffeeba; margin-bottom: 20px; font-size: 0.95rem; line-height: 1.5; }
+.info-box b { color: #d4a017; }
+.anime-note { font-style: italic; border-left: 4px solid var(--accent); padding-left: 10px; margin-top: 15px; color: #555; }
+
+/* Game Elements */
+.scores { display: flex; gap: 10px; margin-bottom: 15px; }
+.score-card { flex: 1; padding: 10px; background: #f1f3f5; border-radius: 12px; border: 3px solid transparent; position: relative; }
+.active-turn { border-color: #2ecc71 !important; background: white !important; transform: scale(1.05); box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+.score-val { font-size: 2rem; font-weight: 900; }
+
+#timer { font-size: 3.5rem; font-weight: 800; margin: 5px 0; font-variant-numeric: tabular-nums; }
+.timer-danger { color: var(--danger); animation: shake 0.2s infinite; }
+
+.target-box { background: #e7f3ff; padding: 15px; border-radius: 15px; margin-bottom: 15px; border: 1px solid #d1ecf1; }
+#target-letter { font-size: 3rem; font-weight: 900; color: var(--accent); }
+
+.history { height: 130px; overflow-y: auto; display: flex; flex-direction: column; gap: 5px; padding: 10px; background: #fafafa; border-radius: 10px; margin-bottom: 15px; border: 1px solid #eee; }
+.msg-row { padding: 6px 12px; border-radius: 8px; font-size: 0.9rem; max-width: 80%; font-weight: bold; }
+.msg-me { align-self: flex-end; background: var(--accent); color: white; }
+.msg-them { align-self: flex-start; background: #ddd; color: #333; }
+
+.input-row { display: flex; gap: 8px; }
+input { flex: 1; padding: 12px; border: 2px solid #ddd; border-radius: 10px; font-size: 1rem; }
+#feedback { height: 20px; font-size: 0.85rem; color: var(--danger); font-weight: bold; margin: 10px 0; }
+
+@keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(2px); } 75% { transform: translateX(-2px); } }
+
+/* Additional logic hooks for newly added JS features */
+.shake { animation: shakeError 0.4s cubic-bezier(.36,.07,.19,.97) both; transform: translate3d(0,0,0); }
+@keyframes shakeError { 
+    10%, 90% { transform: translate3d(-1px, 0, 0); }
+    20%, 80% { transform: translate3d(2px, 0, 0); }
+    30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+    40%, 60% { transform: translate3d(4px, 0, 0); }
+}
+
+.floating-score {
+    position: absolute;
+    color: var(--danger);
+    font-weight: 900;
+    font-size: 1.5rem;
+    pointer-events: none;
+    animation: floatUp 1s ease-out forwards;
+    text-shadow: 0 0 5px rgba(255,255,255,0.8);
+    z-index: 10;
+}
+.floating-score.positive { color: #2ecc71; }
+@keyframes floatUp {
+    0% { opacity: 1; transform: translateY(0) scale(1); }
+    100% { opacity: 0; transform: translateY(-40px) scale(1.5); }
+}
+
+input:disabled, button:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; filter: grayscale(1); }

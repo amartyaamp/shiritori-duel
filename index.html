@@ -5,61 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shiritori Duel: The Snob's Gambit</title>
     <script src="https://cdn.ably.com/lib/ably.min-2.js"></script>
-    <style>
-        :root {
-            --primary: #2c3e50;
-            --accent: #3498db;
-            --p1-color: #3498db;
-            --p2-color: #e67e22;
-            --bg: #f4f7f6;
-            --danger: #e74c3c;
-        }
-
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
-        
-        .screen { background: white; width: 90%; max-width: 450px; padding: 2rem; border-radius: 25px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); text-align: center; display: none; animation: slideUp 0.4s ease-out; }
-        .active { display: block; }
-        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-
-        h1 { font-size: 2.2rem; color: var(--primary); margin-top: 0; }
-        .subtitle { color: #666; font-style: italic; margin-bottom: 2rem; }
-
-        /* Buttons */
-        .menu-btn { width: 100%; padding: 1rem; margin: 8px 0; border: none; border-radius: 12px; font-size: 1.1rem; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        .btn-solo { background: var(--p1-color); color: white; }
-        .btn-remote { background: var(--p2-color); color: white; }
-        .btn-help { background: #eee; color: #444; }
-        .btn-credits { background: #dcdde1; color: #2f3640; }
-        .menu-btn:hover { transform: scale(1.02); filter: brightness(1.1); }
-
-        /* Help & Credits Box */
-        .info-box { text-align: left; background: #fffdf0; padding: 20px; border-radius: 15px; border: 1px solid #ffeeba; margin-bottom: 20px; font-size: 0.95rem; line-height: 1.5; }
-        .info-box b { color: #d4a017; }
-        .anime-note { font-style: italic; border-left: 4px solid var(--accent); padding-left: 10px; margin-top: 15px; color: #555; }
-
-        /* Game Elements */
-        .scores { display: flex; gap: 10px; margin-bottom: 15px; }
-        .score-card { flex: 1; padding: 10px; background: #f1f3f5; border-radius: 12px; border: 3px solid transparent; }
-        .active-turn { border-color: #2ecc71 !important; background: white !important; transform: scale(1.05); box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
-        .score-val { font-size: 2rem; font-weight: 900; }
-        
-        #timer { font-size: 3.5rem; font-weight: 800; margin: 5px 0; font-variant-numeric: tabular-nums; }
-        .timer-danger { color: var(--danger); animation: shake 0.2s infinite; }
-
-        .target-box { background: #e7f3ff; padding: 15px; border-radius: 15px; margin-bottom: 15px; border: 1px solid #d1ecf1; }
-        #target-letter { font-size: 3rem; font-weight: 900; color: var(--accent); }
-
-        .history { height: 130px; overflow-y: auto; display: flex; flex-direction: column; gap: 5px; padding: 10px; background: #fafafa; border-radius: 10px; margin-bottom: 15px; border: 1px solid #eee; }
-        .msg-row { padding: 6px 12px; border-radius: 8px; font-size: 0.9rem; max-width: 80%; font-weight: bold; }
-        .msg-me { align-self: flex-end; background: var(--accent); color: white; }
-        .msg-them { align-self: flex-start; background: #ddd; color: #333; }
-        
-        .input-row { display: flex; gap: 8px; }
-        input { flex: 1; padding: 12px; border: 2px solid #ddd; border-radius: 10px; font-size: 1rem; }
-        #feedback { height: 20px; font-size: 0.85rem; color: var(--danger); font-weight: bold; margin: 10px 0; }
-
-        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(2px); } 75% { transform: translateX(-2px); } }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
@@ -82,7 +28,7 @@
             <div class="anime-note">
                 "One fine afternoon feeling sleepy, <b>Amartya</b> thought of a super anime <i>'No Game No Life'</i> and decided that a world where everything is decided by games was much better than a world where everything is decided by coffee. Thus, this battleground for the intellect and the CPU was born."
             </div>
-            <p style="margin-top:15px; font-size: 0.8rem; text-align: center;">V.2.0 &mdash; Multiplayer via <b>Ably</b> &middot; Word validation via <b>Datamuse</b> &middot; Hosted on <b>Vercel</b></p>
+            <p style="margin-top:15px; font-size: 0.8rem; text-align: center; color: var(--text-muted);">V.2.0 &mdash; Multiplayer via <b>Ably</b> &middot; Word validation via <b>Datamuse</b> &middot; Hosted on <b>Vercel</b></p>
         </div>
         <button class="menu-btn btn-solo" onclick="showScreen('menu')">RETURN TO MENU</button>
     </div>
@@ -104,7 +50,7 @@
     <!-- JOIN SCREEN -->
     <div id="screen-join" class="screen">
         <h1>Join Battle</h1>
-        <input type="text" id="join-id" placeholder="Enter Room Code (e.g. XK9W2A)..." style="text-transform:uppercase;">
+        <input type="text" id="join-id" placeholder="Room Code (e.g. XK9W2A)" style="text-transform:uppercase;">
         <button class="menu-btn btn-remote" onclick="initRemote(false)">ENTER ARENA</button>
         <button class="menu-btn btn-help" onclick="showScreen('menu')">BACK</button>
     </div>
@@ -112,9 +58,9 @@
     <!-- LOBBY SCREEN -->
     <div id="screen-lobby" class="screen">
         <h1>Waiting...</h1>
-        <p>Share this Room Code with your opponent:</p>
-        <div id="my-id-display" style="background:#eee; padding:10px; border-radius:8px; font-family:monospace; font-size:1.4rem; letter-spacing:4px; cursor:pointer;" onclick="copyId()">Generating...</div>
-        <p><small>(Click ID to copy)</small></p>
+        <p class="subtitle" style="margin-bottom:1rem;">Share this Room Code with your opponent:</p>
+        <div id="my-id-display">...</div>
+        <p><small style="color:var(--text-muted);">(Click ID to copy)</small></p>
         <button class="menu-btn btn-help" onclick="abandonShip()">ABANDON SHIP</button>
     </div>
 
@@ -137,368 +83,13 @@
         <div class="input-area">
             <div class="input-row">
                 <input type="text" id="word-input" placeholder="Type here..." disabled>
-                <button class="menu-btn btn-solo" id="send-btn" style="width:auto; margin:0">SEND</button>
+                <button class="menu-btn btn-solo" id="send-btn" style="width:auto; margin:0; padding: 0 1.5rem;">SEND</button>
             </div>
-            <button onclick="handleForfeit()" style="margin-top:15px; border:none; background:none; color:var(--danger); cursor:pointer; font-weight:bold;">SURRENDER (FORFEIT)</button>
+            <button onclick="handleForfeit()" style="margin-top:15px; border:none; background:none; color:var(--text-muted); cursor:pointer; font-weight:bold; font-family:'Outfit', sans-serif; transition: color 0.3s; letter-spacing: 1px;" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--text-muted)'">SURRENDER (FORFEIT)</button>
         </div>
     </div>
 
-<script>
-    let ablyClient, channel, timerId;
-    let myScore = 100, oppScore = 100, timeLeft = 15.0;
-    let usedWords = new Set(), lastChar = "", amIHost = false, isMyTurn = false, gameMode = 'remote';
-    let gameOver = false; // guard against double-fire on disconnect
-    const ABLY_KEY = '0rH5ag.KR9ICA:0zqyTFNsnNxVRiej7nAkWgnS5Sv0-xQ0kD50Qq8BCRk';
-
-    const stopWords = ["the","and","but","for","not","with","from","that","this","they","are","was","were","been","his","her","she","him","had","has"];
-
-    function showScreen(id) {
-        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-        document.getElementById('screen-' + id).classList.add('active');
-    }
-
-    function abandonShip() {
-        if (gameOver) return;
-        gameOver = true;
-        if (ablyClient) ablyClient.close();
-        window.location.reload();
-    }
-
-    function generateRoomCode() {
-        return Math.random().toString(36).substring(2, 8).toUpperCase();
-    }
-
-    async function initRemote(isHost) {
-        amIHost = isHost;
-        gameOver = false;
-
-        // Each player gets a unique clientId so we can tell them apart in presence
-        const playerId = Math.random().toString(36).substring(2);
-        ablyClient = new Ably.Realtime({ key: ABLY_KEY, clientId: playerId });
-
-        let roomCode;
-        if (isHost) {
-            roomCode = generateRoomCode();
-            document.getElementById('my-id-display').textContent = roomCode;
-            showScreen('lobby');
-        } else {
-            roomCode = document.getElementById('join-id').value.trim().toUpperCase();
-            if (!roomCode) { alert("Need a Room Code, friend."); return; }
-        }
-
-        channel = ablyClient.channels.get(`shiritori-${roomCode}`);
-
-        // Enter presence so each side knows when the other disconnects
-        await channel.presence.enter();
-        channel.presence.subscribe('leave', (member) => {
-            if (member.clientId !== playerId && !gameOver) {
-                alert("Opponent disconnected.");
-                abandonShip();
-            }
-        });
-
-        ablyClient.connection.on('failed', () => {
-            if (!gameOver) { alert("Connection to Ably failed."); abandonShip(); }
-        });
-
-        if (isHost) {
-            // Wait for the joiner to signal they're in
-            channel.subscribe('player-joined', () => {
-                channel.unsubscribe('player-joined');
-                channel.publish('game-start', {});
-                setupAblyGame();
-            });
-        } else {
-            // Wait for the host's start signal
-            channel.subscribe('game-start', () => {
-                channel.unsubscribe('game-start');
-                setupAblyGame();
-            });
-            // Tell the host we've arrived
-            channel.publish('player-joined', {});
-        }
-    }
-
-    function setupAblyGame() {
-        showScreen('game');
-        document.getElementById('name-p1').textContent = amIHost ? 'YOU' : 'THEM';
-        document.getElementById('name-p2').textContent = amIHost ? 'THEM' : 'YOU';
-
-        // Ably delivers messages to ALL subscribers including the publisher.
-        // msg.clientId tells us who sent it — skip our own messages to avoid echo.
-        channel.subscribe('move', (msg) => {
-            if (msg.clientId === ablyClient.auth.clientId) return;
-            receiveMove(msg.data);
-        });
-        channel.subscribe('forfeit', (msg) => {
-            if (msg.clientId === ablyClient.auth.clientId) return;
-            alert("They surrendered! A victory for the history books.");
-            abandonShip();
-        });
-
-        if (amIHost) { isMyTurn = true; startTurn(); } else { setTurnUI(); }
-    }
-
-    // Secondary validator: check Datamuse when the primary dictionary API misses a word.
-    // Datamuse returns an empty array for unknown words, non-empty for known ones.
-    async function isKnownWord(word) {
-        try {
-            const res = await fetch(
-                `https://api.datamuse.com/words?sp=${word}&max=1`,
-                { signal: AbortSignal.timeout(3000) }
-            );
-            const data = await res.json();
-            // Accept if Datamuse returns an exact lowercase match
-            return data.length > 0 && data[0].word.toLowerCase() === word;
-        } catch {
-            return false;
-        }
-    }
-
-    async function handleSend() {
-        const input = document.getElementById('word-input');
-        const word = input.value.toLowerCase().trim();
-        const fb = document.getElementById('feedback');
-
-        fb.textContent = "Consulting the high council...";
-        if (word.length < 3) { fb.textContent = "3+ letters! Don't be lazy."; return; }
-        if (lastChar && word[0] !== lastChar) { fb.textContent = `Must start with ${lastChar.toUpperCase()}!`; return; }
-        if (usedWords.has(word)) { fb.textContent = "Old news. Pick another."; return; }
-        if (stopWords.includes(word)) { fb.textContent = "Stop-words are forbidden."; return; }
-
-        try {
-            // Fire both APIs in parallel — no sequential penalty for fallback words
-            const [primaryResult, datamuse] = await Promise.allSettled([
-                fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`).then(r => r.ok ? r.json() : null),
-                isKnownWord(word)
-            ]);
-
-            const primaryData = primaryResult.status === 'fulfilled' ? primaryResult.value : null;
-            const knownByDatamuse = datamuse.status === 'fulfilled' ? datamuse.value : false;
-
-            if (primaryData) {
-                // Primary succeeded — check for proper nouns using its data
-                if (primaryData[0].word[0] === primaryData[0].word[0].toUpperCase()) { fb.textContent = "Proper Nouns are banned."; return; }
-            } else if (!knownByDatamuse) {
-                // Both failed — genuinely not a word
-                fb.textContent = "Not a real word!"; return;
-            }
-
-            clearInterval(timerId);
-            myScore = Math.round((myScore - timeLeft) * 10) / 10;
-            updateScoreDisplay();
-
-            if (gameMode === 'remote') channel.publish('move', { word, score: myScore });
-            logWord(word, 'me');
-            finishMove(word);
-
-            if (myScore <= 0) { alert("VICTORY ACHIEVED!"); abandonShip(); }
-            else if (gameMode === 'solo') runCpuTurn();
-            else { isMyTurn = false; setTurnUI(); }
-        } catch (e) { fb.textContent = "Dictionary API is acting up."; }
-    }
-
-    function receiveMove(data) {
-        clearInterval(timerId);
-        oppScore = data.score;
-        updateScoreDisplay();
-        logWord(data.word, 'them');
-        finishMove(data.word);
-
-        // If opponent's score just hit zero, they win — show a lose message
-        if (oppScore <= 0) {
-            alert("Your opponent has reached zero. You lose this round — train harder.");
-            abandonShip();
-            return;
-        }
-
-        isMyTurn = true;
-        startTurn();
-    }
-
-    function finishMove(word) {
-        usedWords.add(word);
-        lastChar = word.slice(-1);
-        document.getElementById('target-letter').textContent = lastChar.toUpperCase();
-        document.getElementById('word-input').value = "";
-        document.getElementById('feedback').textContent = "";
-    }
-
-    function startTurn() {
-        timeLeft = 15.0;
-        setTurnUI();
-
-        // First turn: no chain constraint yet — show a helpful hint
-        if (!lastChar && isMyTurn) {
-            document.getElementById('feedback').textContent = '💡 First word is yours — any word (3+ letters, no proper nouns, no stop-words).';
-        }
-
-        timerId = setInterval(() => {
-            timeLeft -= 0.1;
-            const t = document.getElementById('timer');
-            t.textContent = timeLeft.toFixed(1);
-            t.className = timeLeft < 0 ? 'timer-danger' : '';
-        }, 100);
-    }
-
-    function setTurnUI() {
-        const input = document.getElementById('word-input');
-        input.disabled = !isMyTurn;
-        if (isMyTurn) input.focus();
-        document.getElementById('card-p1').className = `score-card ${((amIHost && isMyTurn) || (!amIHost && !isMyTurn)) ? 'active-turn' : ''}`;
-        document.getElementById('card-p2').className = `score-card ${((!amIHost && isMyTurn) || (amIHost && !isMyTurn)) ? 'active-turn' : ''}`;
-    }
-
-    function updateScoreDisplay() {
-        document.getElementById(amIHost ? 'score-p1' : 'score-p2').textContent = myScore;
-        document.getElementById(amIHost ? 'score-p2' : 'score-p1').textContent = oppScore;
-    }
-
-    function logWord(word, who) {
-        const div = document.createElement('div');
-        div.className = `msg-row msg-${who}`;
-        div.textContent = word.toUpperCase();
-        document.getElementById('history').appendChild(div);
-        document.getElementById('history').scrollTop = 9999;
-    }
-
-    function handleForfeit() { if (channel) channel.publish('forfeit', {}); abandonShip(); }
-    function copyId() { navigator.clipboard.writeText(document.getElementById('my-id-display').textContent); alert("Room Code copied!"); }
-
-    function startSolo() {
-        gameMode = 'solo'; amIHost = true; isMyTurn = true;
-        showScreen('game'); startTurn();
-    }
-
-    // Large word bank for the CPU to draw from
-    const CPU_WORD_BANK = [
-        "apple","anthem","anchor","angel","amber","arctic","arrow","artist","atlas","audio",
-        "blaze","bloom","brave","bridge","brook","brush","burst","butter","button","bronze",
-        "cabin","camel","canoe","cargo","cedar","chain","charm","chess","chief","citrus",
-        "cloud","comet","coral","crane","crisp","cross","crown","curve","cycle","cedar",
-        "dandy","dance","diver","dodge","draft","drain","dream","drift","drink","drive",
-        "eagle","earth","ebony","eight","elder","ember","empty","enemy","enjoy","enter",
-        "fable","faith","fancy","feast","fetch","fibre","field","flare","flame","flint",
-        "fleet","float","flood","floor","flour","flour","flute","forge","frail","frame",
-        "giant","glade","given","glass","globe","gloom","gloss","grace","grain","grand",
-        "grant","graph","grasp","gravel","graze","great","green","greet","grill","grind",
-        "happy","harbor","harsh","heart","heavy","herbs","hinge","hobby","honor","horse",
-        "hotel","hover","humid","hunch","hurry","hyena","hyphen","hydra","image","infer",
-        "inner","irony","ivory","ideal","igloo","imply","infer","inbox","index","input",
-        "jewel","joker","joint","judge","juice","jumbo","karma","kayak","kneel","knot",
-        "label","lance","large","laser","latch","layer","learn","ledge","level","light",
-        "limit","linen","liver","local","lodge","longe","lower","lucky","lunar","lyric",
-        "magic","manor","maple","march","match","metal","minor","model","motor","mount",
-        "mouse","mango","merit","merge","mimic","mirth","moist","molar","money",
-        "naval","nerve","night","noble","noise","north","novel","nurse","nymph","naive",
-        "oaken","oasis","ocean","offer","onset","optic","orbit","order","organ","other",
-        "outer","ounce","ovate","oxide","ozone","panel","paper","patch","pilot","place",
-        "plain","plane","plank","plant","plate","plaza","pluck","plumb","plume","plunge",
-        "point","polar","poppy","porch","power","price","pride","prime","print","prize",
-        "probe","prone","proud","prove","prune","pulse","pupil","quest","quill","quota",
-        "quote","radix","rally","raven","reach","react","realm","rebel","refit","relay",
-        "renew","repel","rerun","rider","ridge","ripen","risen","river","rivet","robin",
-        "rocky","roman","roost","rough","route","royal","ruby","ruler","rumor","rural",
-        "salve","sandy","scale","scamp","scene","scent","scout","screw","seize","sense",
-        "serve","shade","shaft","shale","shame","shape","share","sharp","shell","shift",
-        "shine","shirt","shore","short","shout","sight","silly","since","sixth","skill",
-        "slant","slash","sleep","slide","slope","slosh","sloth","smart","smash","smell",
-        "smile","snail","snake","solar","solid","solve","spark","spend","spill","spire",
-        "spite","split","spoke","spore","sport","spout","spray","squad","squat","stage",
-        "stale","stall","stand","stark","start","state","stays","stern","stiff","still",
-        "stoic","stomp","stone","store","storm","story","stout","stove","strap","straw",
-        "stray","strut","stuck","study","stunt","style","surge","swamp","swept","swing",
-        "swirl","swore","table","talon","tempo","tenor","terse","thorn","three","tiger",
-        "tidal","tight","timer","title","token","total","touch","tower","toxic","track",
-        "trade","trail","train","tramp","traps","tread","treat","trend","tribe","trick",
-        "tried","troop","trout","trove","truce","truly","trunk","tryst","tulip","tuner",
-        "tunic","tutor","twice","twirl","twist","ultra","uncle","under","unity","until",
-        "upper","upset","urban","usage","usher","utter","valor","valve","vapor","vault",
-        "vicar","vigor","viper","viral","visor","vocal","voice","voter","vowed","vague",
-        "wafer","waltz","waste","watch","water","weave","wedge","weigh","wheat","wheel",
-        "where","which","while","whirl","white","whole","wider","wimpy","winch","witch",
-        "woken","woman","world","worry","wrath","wrist","yacht","yearn","yield","young","zesty"
-    ];
-
-    // Fetch candidate words from Datamuse API starting with `letter`.
-    // Returns a filtered array of clean lowercase words, or [] on any failure.
-    async function fetchDatamuseWords(letter) {
-        try {
-            const res = await fetch(
-                `https://api.datamuse.com/words?sp=${letter}*&max=100&md=p`,
-                { signal: AbortSignal.timeout(4000) }
-            );
-            const data = await res.json();
-            return data
-                .filter(d => !d.tags || !d.tags.includes('prop')) // drop proper nouns
-                .map(d => d.word.toLowerCase())
-                .filter(w => w.length >= 3 && /^[a-z]+$/.test(w)); // single words, 3+ letters
-        } catch {
-            return []; // network error or timeout → local bank fallback kicks in
-        }
-    }
-
-    // Shared filter: apply all game rules to a candidate list
-    function filterCandidates(words) {
-        const required = lastChar.toLowerCase();
-        return words.filter(w =>
-            (!required || w[0] === required) &&
-            !usedWords.has(w) &&
-            !stopWords.includes(w)
-        );
-    }
-
-    async function runCpuTurn() {
-        isMyTurn = false; setTurnUI();
-
-        const thinkTime = 1500 + Math.random() * 3500; // 1.5s – 5s
-
-        // Fire the Datamuse fetch and the think-timer in parallel.
-        // The CPU plays only after BOTH complete, so API latency adds zero extra delay.
-        const [apiResult] = await Promise.allSettled([
-            fetchDatamuseWords(lastChar.toLowerCase()),
-            new Promise(r => setTimeout(r, thinkTime))
-        ]);
-
-        // Primary: API words that pass all game rules
-        let candidates = filterCandidates(
-            apiResult.status === 'fulfilled' ? apiResult.value : []
-        );
-
-        // Fallback: local word bank (same filter chain)
-        if (candidates.length === 0) {
-            candidates = filterCandidates(CPU_WORD_BANK);
-        }
-
-        // Truly stuck — CPU concedes
-        if (candidates.length === 0) {
-            alert("The Machine has no valid move. You win by default!");
-            abandonShip();
-            return;
-        }
-
-        const cpuWord = candidates[Math.floor(Math.random() * candidates.length)];
-
-        // Deduct score based on actual think time (same formula as the player)
-        const cpuTimeLeft = Math.max(0, 15 - thinkTime / 1000);
-        oppScore = Math.round((oppScore - cpuTimeLeft) * 10) / 10;
-
-        updateScoreDisplay();
-        logWord(cpuWord, 'them');
-        finishMove(cpuWord);
-
-        if (oppScore <= 0) {
-            alert("The Machine has reached zero score. You lose... this time.");
-            abandonShip();
-            return;
-        }
-
-        isMyTurn = true;
-        startTurn();
-    }
-
-    document.getElementById('send-btn').onclick = handleSend;
-    document.getElementById('word-input').onkeypress = e => { if(e.key === 'Enter' && isMyTurn) handleSend(); };
-</script>
+    <script src="words.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
